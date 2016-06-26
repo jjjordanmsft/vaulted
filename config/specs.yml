@@ -99,6 +99,57 @@ v1:
           - name: "user_id"
             type: "string"
             required: true
+  cert:
+    "auth/%s/certs/:id":
+      delete:
+        id: true
+        params: []
+      get:
+        id: true
+        params: []
+      post:
+        id: true
+        params:
+          - name: "certificate"
+            type: "string"
+            required: true
+          - name: "policies"
+            type: "string"
+            required: false
+          - name: "display_name"
+            type: "string"
+            required: false
+          - name: "ttl"
+            type: "number"
+            required: false
+    "auth/%s/certs":
+      list:
+        id: false
+        params: []
+    "auth/%s/crls/:id":
+      delete:
+        id: true
+        params: []
+      get:
+        id: true
+        params: []
+      post:
+        id: true
+        params:
+          - name: "crl"
+            type: "string"
+            required: true
+    "auth/%s/login":
+      post:
+        id: false
+        params: []
+    "auth/%s/config":
+      post:
+        id: false
+        params:
+          - name: "disable_binding"
+            type: "boolean"
+            required: false
   secret:
     "%s/:id":
       get:
