@@ -6,6 +6,7 @@ var rp = require('request-promise');
 var fs = require('fs');
 var path = require('path');
 var os = require('os');
+var forge = require('node-forge');
 
 var helpers = module.exports = {
   chai: require('chai'),
@@ -177,3 +178,85 @@ helpers.getToken = function getToken(vault) {
     });
 
 };
+
+var cert_serial = 0;
+helpers.generateCertificate = function generateCertificate(options) {
+  options = options || {};
+  
+  // Key pair
+  var keypair = forge.pki.rsa.generateKeyPair(options.bits || 512);
+  
+  // CSR
+  var expiresAfter = typeof options.expire === 'number' ? options.expire : 60 * 60 * 1000;
+  var cert = forge.pki.createCertificate();
+  cert.publicKey = keypair.publicKey;
+  cert.serialNumber = ('' + (cert_serial++));
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date(cert.validity.notBefore.getTime() + expiresAfter);
+  var attrs = [
+    {
+      name: 'commonName',
+      value: options.commonName || 'vaulted-tests.example'
+    },
+    {
+      name: 'countryName',
+      value: options.countryName || 'US'
+    },
+    {
+      shortName: 'ST',
+      value: options.state || 'California'
+    },
+    {
+      name: 'localityName',
+      value: options.localityName || 'San Francisco'
+    },
+    {
+      shortName: 'OU',
+      value: options.organizationalUnit || 'vaulted-test'
+    }
+  ];
+  
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  cert.setExtensions([{
+    name: 'basicConstraints',
+    cA: true
+  }, {
+    name: 'keyUsage',
+    keyCertSign: true,
+    digitalSignature: true,
+    nonRepudiation: true,
+    keyEncipherment: true,
+    dataEncipherment: true
+  }, {
+    name: 'extKeyUsage',
+    serverAuth: true,
+    clientAuth: true,
+    codeSigning: true,
+    emailProtection: true,
+    timeStamping: true
+  }, {
+    name: 'nsCertType',
+    client: true,
+    server: true,
+    email: true,
+    objsign: true,
+    sslCA: true,
+    emailCA: true,
+    objCA: true
+  }, {
+    name: 'subjectAltName',
+    altNames: []
+  }, {
+    name: 'subjectKeyIdentifier'
+  }]);
+  
+  cert.sign(keypair.privateKey);
+  
+  return {
+    certificate: forge.pki.certificateToPem(cert),
+    publicKey: forge.pki.publicKeyToPem(keypair.publicKey),
+    privateKey: forge.pki.privateKeyToPem(keypair.privateKey)
+  };
+};
+
